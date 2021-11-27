@@ -39,7 +39,8 @@ namespace里的进程有2个错觉
 
 因为每个容器都有自己的（虚拟）网络设备，因此容器里的进程可以绑定同一个端口而不冲突。
 
-![image-20211127204147296](E:\Code\k8s\1. linux网络虚拟化\1.1 network namespace\imgs\image-20211127204147296.png)
+
+![image-20211127204147296](.\imgs\image-20211127204147296.png)
 
 
 
@@ -234,13 +235,16 @@ veth总是成对，因此叫veth pair
 
 常用于跨namespace通信
 
-![image-20211127212747108](E:\Code\k8s\1. linux网络虚拟化\1.1 network namespace\imgs\image-20211127212747108.png)
+
+![image-20211127212747108](.\imgs\image-20211127212747108.png)
+
 
 
 
 通信原理
 
-![image-20211127222715733](E:\Code\k8s\1. linux网络虚拟化\1.1 network namespace\imgs\image-20211127222715733.png)
+
+![image-20211127222715733](.\imgs\image-20211127222715733.png)
 
 
 
