@@ -428,3 +428,111 @@ target     prot opt source               destination
 
 ## bridge
 
+veth pair能连接2个netns，但是更多就比较困难了，需要bridge。
+
+### 前置知识：中继器、集线器、网桥、交换机、路由器
+
+参考资料   https://www.youtube.com/watch?v=H7-NR3Q3BeI
+
+**中继器 Repeater**
+
+主要功能是对接收到的信号进行再生整形放大，以扩大网络的传输距离，它工作于OSI参考模型第一层，即“物理层”。
+
+![image-20211128122142133](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281221163.png)
+
+
+
+**集线器 Hub**
+
+当网络变得复杂时，我们直接连接设备是无法扩展的，如下图
+
+![image-20211128122243315](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281222362.png)
+
+因此需要集线器的帮助
+
+集线器是一个  multiport-repeater， 也工作在1层，也只是简单的发送数据。
+
+采用**广播**的形式发送，当它要向某节点发送数据时，不是直接把数据发送到目的节点，而**是把数据包发送到与集线器相连的所有节点**
+
+![hub](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281232265.gif)
+
+
+
+缺陷：
+
+1. 所有设施共享带宽的一个设施，所以它是半-双工的，所以他会**存在冲突**，同时发给hub的入站和出站包会存在冲突，需要算法处理冲突，因而hub的性能相对会差
+2. 一台主机发给另外一台主机的内容会被其余无关的主机监听到。**有安全问题**
+
+
+
+
+
+**网桥 Bridge**
+
+定义上是一个双端口设备，工作在二层，数据包会根据MAC地址来发给指定的端口
+
+能知道主机在哪边
+
+如下图，绿色主机和绿色主机通信，hub会广播包，但是Bridge知道绿色主机在左侧，故而不会把包转发到右侧
+
+![bridge-side](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281309593.gif)
+
+如下图，蓝色主机和蓝色主机通信，bridge知道主机在另一侧，故而会把包转发过去
+
+![bridge-cross-side](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281312561.gif)
+
+- 桥会跟踪插到他的接口上的网络的所有主机的地址，当桥的一端的这个网络的数据包发到桥，桥会过滤机制，保证属于这一端的网络的数据包留在本地，而不会被无辜的转发到对面网络（由于本地包，不是发给桥对面的）
+- 当桥接受到网络发出来的包的地址不属于桥的这一端，那么他会发到对面去。但是，实际上它并不知道对面能否存在这个地址，只是猜测既然不在这边，那么可能在对面，而后假如对面网络还有其余桥，那么它会发现这个包不在自己这里，又会把包发到其余桥的对面去，**所以一个包要到达目的地址所在的主机，需要经过多个桥**
+- 由于上面这一点，广播和多播（比方arp这种找所有人要地址的包）的这类流量必需经过网络上的所有桥，那么所有的主机都是有机会读到这个广播包的，而网络那么大（特别是桥越多的网络），其实很多包是和自己无关的，那么就会有可能引起**广播风暴**，从而阻止了单播的流量（就是目的明确的包）
+
+
+
+**交换机 Switch**
+
+交换机就像一个多端口的网桥，工作在二层，数据包会根据MAC地址来发给指定的端口
+
+它知道主机在哪个端口上
+
+![switch](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281317004.gif)
+
+
+
+
+
+交换机促成了一个网络（Network），像上图这样结构的一系列所有设备，组成了一个网络。
+
+![image-20211128132258728](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281322778.png)
+
+
+
+**路由器 Router**
+
+路由器知道连接到它的网络（Network），以路由表（Routing Table）的形式存储。
+
+路由就是把数据从一个网络发送到另一个网络
+
+
+
+![image-20211128132924779](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281329830.png)
+
+
+
+路由器在每个连接到它的网络中都有个ip地址，如下图，这个ip地址通常被我们称为**网关Gateway**
+
+![image-20211128133103371](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281331427.png)
+
+
+
+路由器使得网络能有很多层级
+
+![image-20211128133216300](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281332364.png)
+
+![image-20211128133255268](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281332343.png)
+
+
+
+**总结**
+
+![image-20211128133532734](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281335801.png)
+
+![image-20211128133548691](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281335757.png)
