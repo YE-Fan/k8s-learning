@@ -536,3 +536,336 @@ veth pair能连接2个netns，但是更多就比较困难了，需要bridge。
 ![image-20211128133532734](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281335801.png)
 
 ![image-20211128133548691](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111281335757.png)
+
+
+
+### Linux Bridge 
+
+Linux里的Bridge更像是一个虚拟的交换机，任意真实设备如eth0或虚拟设备如（veth) 都能连接上去，但它不能跨机器连接网络设备。
+
+它是多端口的，根据mac地址转发设备，类似于物理交换机。
+
+
+
+
+
+### 实验
+
+#### 创建单个bridge
+
+
+
+使用iproute2工具包创建
+
+```bash
+# 创建一个bridge名字是br0
+yefan@ubuntu:~$ sudo ip link add name br0 type bridge
+# 刚创建出来状态是down，将其设为UP
+yefan@ubuntu:~$ sudo ip link set br0 up
+
+yefan@ubuntu:~$ ip link list
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether 00:0c:29:a3:f9:48 brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default
+    link/ether 02:42:41:f7:1e:9b brd ff:ff:ff:ff:ff:ff
+4: br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether ee:a4:1a:1a:41:da brd ff:ff:ff:ff:ff:ff
+
+
+```
+
+如下图
+
+![image-20211128214722913](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111282147955.png)
+
+此时bridge是一个独立的网络设备，它一端连着协议栈，另一端什么也没连，因此，此时它没有任何功能。
+
+
+
+
+
+或者使用bridge-utils工具包创建
+
+```bash
+sudo brctl addbr br0
+```
+
+
+
+#### 连接到veth pair
+
+1. 首先创建veth pair并且给他加上ip地址
+
+![image-20211128215422800](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111282154851.png)
+
+```bash
+yefan@ubuntu:~$ sudo ip link add veth0 type veth peer name veth1
+yefan@ubuntu:~$ sudo ip addr add 1.2.3.101/24 dev veth0
+yefan@ubuntu:~$ sudo ip addr add 1.2.3.102/24 dev veth1
+yefan@ubuntu:~$ sudo ip link set veth0 up
+yefan@ubuntu:~$ sudo ip link set veth1 up
+
+yefan@ubuntu:~$ ip link list
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: ens33: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DEFAULT group default qlen 1000
+    link/ether 00:0c:29:a3:f9:48 brd ff:ff:ff:ff:ff:ff
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default
+    link/ether 02:42:41:f7:1e:9b brd ff:ff:ff:ff:ff:ff
+4: br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether ee:a4:1a:1a:41:da brd ff:ff:ff:ff:ff:ff
+5: veth1@veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 0a:32:b0:18:a9:75 brd ff:ff:ff:ff:ff:ff
+6: veth0@veth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DEFAULT group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+
+yefan@ubuntu:~$ ip addr
+......
+5: veth1@veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 0a:32:b0:18:a9:75 brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.102/24 scope global veth1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::832:b0ff:fe18:a975/64 scope link
+       valid_lft forever preferred_lft forever
+6: veth0@veth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.101/24 scope global veth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6472:a9ff:feae:61d/64 scope link
+       valid_lft forever preferred_lft forever
+```
+
+2. 把veth0连接到br0
+
+
+
+```bash
+
+yefan@ubuntu:~$ sudo ip link set dev veth0 master br0
+
+# 可以通过bridge link 查看连接
+yefan@ubuntu:~$ bridge link
+6: veth0@veth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 master br0 state forwarding priority 32 cost 2
+
+# 也可以用下面命令查看连接
+yefan@ubuntu:~$ brctl show
+bridge name     bridge id               STP enabled     interfaces
+br0             8000.6672a9ae061d       no              veth0
+docker0         8000.024241f71e9b       no
+
+#
+yefan@ubuntu:~$ ip addr
+......
+4: br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::eca4:1aff:fe1a:41da/64 scope link
+       valid_lft forever preferred_lft forever
+5: veth1@veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 0a:32:b0:18:a9:75 brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.102/24 scope global veth1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::832:b0ff:fe18:a975/64 scope link
+       valid_lft forever preferred_lft forever
+6: veth0@veth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br0 state UP group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.101/24 scope global veth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::6472:a9ff:feae:61d/64 scope link
+       valid_lft forever preferred_lft forever
+
+
+```
+
+
+
+
+
+
+
+
+
+此时，发生了下面的变化
+
+- br0和veth0连接了，且是双向通道
+
+- 协议栈和veth0连接变成了单通道，只能协议栈发数据给veth0，veth0从**外部**接收的数据不能发给协议栈
+
+- br0的mac地址变成了veth0的mac地址
+
+  - br0   ee:a4:1a:1a:41:da
+    veth0 66:72:a9:ae:06:1d
+
+    br0   66:72:a9:ae:06:1d
+    veth0 66:72:a9:ae:06:1d
+
+这就相当于是bridge在veth0和协议栈直接做了拦截，在veth0上，把veth0要转发给协议栈的数据拦截，全部转发给bridge。同时bridge可以像veth0发送数据。
+
+![image-20211128220513438](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111282205493.png)
+
+
+
+验证数据发送
+
+1. veth0 ping veth1
+
+```
+# 使用veth0接口向1.2.3.102 ping 1次
+yefan@ubuntu:~$ ping -c 1 -I veth0 1.2.3.102
+PING 1.2.3.102 (1.2.3.102) from 1.2.3.101 veth0: 56(84) bytes of data.
+^C
+--- 1.2.3.102 ping statistics ---
+1 packets transmitted, 0 received, 100% packet loss, time 0ms
+```
+
+如上，是失败了
+
+抓包分析
+
+因为我们是使用非debian系统，用的ubuntu20.04，这里的实验可能会有点问题，需要先设置一下
+
+```bash
+yefan@ubuntu:~$ su root
+Password:
+root@ubuntu:/home/yefan# echo 1 > /proc/sys/net/ipv4/conf/veth1/accept_local
+root@ubuntu:/home/yefan# echo 1 > /proc/sys/net/ipv4/conf/veth0/accept_local
+root@ubuntu:/home/yefan# echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter
+root@ubuntu:/home/yefan# echo 0 > /proc/sys/net/ipv4/conf/veth0/rp_filter
+root@ubuntu:/home/yefan# echo 0 > /proc/sys/net/ipv4/conf/veth1/rp_filter
+
+```
+
+
+
+首先开另一个终端进行tcpdump，分别监听veth1和veth0和br0
+
+```bash
+yefan@ubuntu:~$ sudo tcpdump -n -i veth1
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on veth1, link-type EN10MB (Ethernet), capture size 262144 bytes
+
+yefan@ubuntu:~$ sudo tcpdump -n -i veth0
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on veth0, link-type EN10MB (Ethernet), capture size 262144 bytes
+
+yefan@ubuntu:~$ sudo tcpdump -n -i br0
+tcpdump: verbose output suppressed, use -v or -vv for full protocol decode
+listening on br0, link-type EN10MB (Ethernet), capture size 262144 bytes
+```
+
+重新ping一次
+
+```
+yefan@ubuntu:~$ ping -c 1 -I veth0 1.2.3.102
+PING 1.2.3.102 (1.2.3.102) from 1.2.3.101 veth0: 56(84) bytes of data.
+
+--- 1.2.3.102 ping statistics ---
+1 packets transmitted, 0 received, 100% packet loss, time 0ms
+```
+
+
+
+监听到的报文如下
+
+其中veth1这边
+
+```
+14:25:23.104996 ARP, Request who-has 1.2.3.102 tell 1.2.3.101, length 28
+14:25:23.105002 ARP, Reply 1.2.3.102 is-at 0a:32:b0:18:a9:75, length 28
+```
+
+其中veth0这边
+
+```
+14:25:23.104991 ARP, Request who-has 1.2.3.102 tell 1.2.3.101, length 28
+14:25:23.105002 ARP, Reply 1.2.3.102 is-at 0a:32:b0:18:a9:75, length 28
+```
+
+其中br0这边
+
+```
+14:25:23.105002 ARP, Reply 1.2.3.102 is-at 0a:32:b0:18:a9:75, length 28
+```
+
+
+
+veth1和veth0上抓到的报文，都包含arp请求和响应
+
+而br0这边只有响应包
+
+说明了veth0收到响应包之后，没有给协议栈，而是给了br0，于是协议栈拿不到veth1的mac地址，就无法通信。
+
+
+
+
+
+
+
+#### 把IP让给bridge
+
+从前面实验看出，给veth0配ip是没意义的，因为数据包无法给协议栈，协议栈传数据给veth0，回程报文回不去。
+
+于是把veth0的IP让给br0
+
+
+
+```bash
+yefan@ubuntu:~$ sudo ip addr del 1.2.3.101/24 dev veth0
+yefan@ubuntu:~$ sudo ip addr add 1.2.3.101/24 dev br0
+
+4: br0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.101/24 scope global br0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::eca4:1aff:fe1a:41da/64 scope link
+       valid_lft forever preferred_lft forever
+5: veth1@veth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default qlen 1000
+    link/ether 0a:32:b0:18:a9:75 brd ff:ff:ff:ff:ff:ff
+    inet 1.2.3.102/24 scope global veth1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::832:b0ff:fe18:a975/64 scope link
+       valid_lft forever preferred_lft forever
+6: veth0@veth1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master br0 state UP group default qlen 1000
+    link/ether 66:72:a9:ae:06:1d brd ff:ff:ff:ff:ff:ff
+    inet6 fe80::6472:a9ff:feae:61d/64 scope link
+       valid_lft forever preferred_lft forever
+
+```
+
+就相当于是
+
+![image-20211128223933763](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111282239820.png)
+
+> 上图删去了协议栈和veth0的联系，其实他们还是有联系的，但由于veth0没有IP，因此协议栈路由的时候不会把包发给veth0。就算强制让包从veth0发出去，由于veth0接收到的数据只会给br0，协议栈还是无法接收到arp应答包，同样导致通信失败。此时veth0相当于一根网线
+
+此时通过br0 ping veth1
+
+```
+yefan@ubuntu:~$ ping -c 1 -I br0 1.2.3.102
+
+# 应该要ping通的，但是使用的ubuntu20可能因为内核设置而ping不通，换成debian可能能行
+```
+
+
+
+
+
+这块由于系统问题，进行不下去了，有机会换debian进行继续。
+
+
+
+### 容器网络中的bridge
+
+![image-20211128235304626](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202111282353685.png)
+
+在容器中配置网关为br0
+
+从容器发出的数据包，先通过br0-> 主机协议栈 , 由于目的地址是外网ip， 且host开启了IP forward，数据包会通过ens33发出去
+
+
+
+## tun/tap设备
+
+
+
