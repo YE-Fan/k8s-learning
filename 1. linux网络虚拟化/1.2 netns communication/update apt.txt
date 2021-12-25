@@ -1,0 +1,3 @@
+https://developer.aliyun.com/mirror/ubuntu
+
+sudo apt update
