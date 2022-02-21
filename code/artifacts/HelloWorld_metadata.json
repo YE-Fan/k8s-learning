@@ -1,0 +1,58 @@
+{
+	"compiler": {
+		"version": "0.4.21+commit.dfe3193c"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"constant": false,
+				"inputs": [],
+				"name": "sayHello",
+				"outputs": [],
+				"payable": false,
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"name": "_value",
+						"type": "string"
+					}
+				],
+				"name": "say",
+				"type": "event"
+			}
+		],
+		"devdoc": {
+			"methods": {}
+		},
+		"userdoc": {
+			"methods": {}
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"begin.sol": "HelloWorld"
+		},
+		"evmVersion": "byzantium",
+		"libraries": {},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"begin.sol": {
+			"keccak256": "0x11e2a4963e3f105707dea406005862d506615d934fd08f8eb8f70ddf1d6e7b3f",
+			"urls": [
+				"bzzr://c9b81ec54ce2640180d2f42a901288820eb74fc4b9dcfe24d344224ecd8a9f91"
+			]
+		}
+	},
+	"version": 1
+}

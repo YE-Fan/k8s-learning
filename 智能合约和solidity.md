@@ -131,30 +131,6 @@ gas limit
 
 
 
-## Solidity
-
-![image-20220220032220758](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202200322813.png)
-
-
-
-### Remix
-
-https://remix.ethereum.org
-
- ![image-20220220150459936](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201505030.png)
-
-
-
-![image-20220220150855625](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201508679.png)
-
-
-
-客户端版
-
-![image-20220220151133199](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201511286.png)
-
-
-
 ## MetaMask
 
 ![image-20220220151329767](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201513809.png)
@@ -168,4 +144,201 @@ https://remix.ethereum.org
 ![image-20220220151731000](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201517045.png)
 
 我们启动Geth后，会在本地提供一个RPC server（http地址），可以用MetaMask连接这个地址，这样就连接到本地节点了
+
+
+
+
+
+## Solidity
+
+![image-20220220032220758](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202200322813.png)
+
+
+
+### Remix
+
+https://remix.ethereum.org
+
+ ![image-20220220150459936](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201505030.png)
+
+要用新命令 npm i @remix-project/remixd
+
+
+
+```
+remixd -s ./
+```
+
+
+
+
+
+![image-20220220150855625](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201508679.png)
+
+
+
+
+
+客户端版
+
+![image-20220220151133199](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202201511286.png)
+
+
+
+
+
+
+
+https://github.com/xilibi2003/leanSolidity
+
+
+
+### QuickStart
+
+1. ### 编写代码
+
+```solidity
+pragma solidity ^0.4.24;  // 编译器版本，不同版本好像语法是有点不同的
+
+// 相当于类申明
+contract SimpleStorage {
+	// 状态变量
+    uint storedData;
+
+    function set(uint x) public {
+        storedData = x;
+    }
+
+    function get() public constant returns (uint) {
+        return storedData;
+    }
+
+}
+```
+
+2. ### 钱包设置
+
+MetaMask选择以太网测试网络Ropsten
+
+![image-20220222001703483](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220017524.png)
+
+一开始没有eth，先免费买一点，点购买
+
+![image-20220222001754606](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220017640.png)
+
+Ropsten ETH简称 rETH
+
+
+
+Faucet就是水龙头，就是免费发币的地方
+
+网上由很多Ropsten Faucet都提供这种服务，可以随便google搜一下，不过有的发币快有的慢。
+
+
+
+由于太慢了，就改用rinkeby测试一下
+
+搜了好几个，发现这个发币最快https://www.rinkebyfaucet.com/
+
+
+
+
+
+3. ### 部署
+
+remix连接网页钱包metamask
+
+
+
+![image-20220222005114794](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220052153.png)
+
+点击部署后会弹出
+
+![image-20220222005650792](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220056821.png)
+
+
+
+确认后得到报错
+
+![image-20220222013809935](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220138967.png)
+
+点进去看报错
+
+![image-20220222013833482](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220138539.png)
+
+它说只支持 byzantium 块，可能和选了rinkeby测试链有关
+
+修改remix的编译为byzantium格式的虚拟机
+
+![image-20220222013949502](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220139533.png)
+
+记得重新手动点一下编译，有时候不灵，多点几遍
+
+
+
+这下能部署成功了
+
+![image-20220222014013224](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220140246.png)
+
+4. ### 执行
+
+部署的页面最下面出现了刚部署的合约
+
+![image-20220222014449609](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220144641.png)
+
+
+
+
+
+![image-20220222014504649](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220145672.png)
+
+黄色是修改状态，修改状态是要让矿工修改链的，所以要花费eth
+
+蓝色get不会修改状态，不用花费。
+
+测试：
+
+点击get
+
+![image-20220222014622787](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220146821.png)
+
+一开始返回了初始值0.
+
+
+
+set会弹出要付钱的对话框
+
+![image-20220222014714331](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220147380.png)
+
+过了一会儿，日志里面打印出
+
+![image-20220222014845089](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220148109.png)
+
+说明区块链操作成功了。
+
+
+
+再一次发起get，发现得到了新状态 2
+
+![image-20220222014813488](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202220148527.png)
+
+
+
+
+
+### 基本结构
+
+```solidity
+pragma solidity 0.4.24;  表示我用的是0.4.24版本的编译器
+
+或者
+pragma solidity ^0.4.24; 表示[0.4.24, 0.5) 的版本都行，小版本号都兼容
+
+
+pragma 翻译过来就是 编译指示
+```
+
+
+
+
 
