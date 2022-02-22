@@ -328,6 +328,8 @@ set会弹出要付钱的对话框
 
 ### 基本结构
 
+![image-20220222204709671](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222047714.png)
+
 ```solidity
 pragma solidity 0.4.24;  表示我用的是0.4.24版本的编译器
 
@@ -338,7 +340,88 @@ pragma solidity ^0.4.24; 表示[0.4.24, 0.5) 的版本都行，小版本号都�
 pragma 翻译过来就是 编译指示
 ```
 
+#### 状态变量
+
+感觉和java的成员变量有点类似
 
 
 
+#### 函数
+
+感觉和面向对象的方法有点类似
+
+
+
+#### 模块化
+
+
+
+```solidity
+import './xxxx.sol' // 就直接写路径
+```
+
+
+
+#### 函数修改器
+
+modifier关键字。下面这个set方法就被mustOver10这个修改器装饰了，必须要输入值满足修改器。
+
+![image-20220222204854500](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222048526.png)
+
+感觉就像是装饰器模式
+
+
+
+#### 事件
+
+通知合约外部，某事件发生了。
+
+定义事件
+
+![image-20220222205057031](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222050060.png)
+
+感觉上和vue里的事件定义和触发很相似。
+
+
+
+#### 结构类型
+
+可以把一组变量进行自定义类型。
+
+![image-20220222205535506](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222055534.png)
+
+![image-20220222205555426](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222055452.png)
+
+不知道为啥不需要构造函数，可能有默认的。
+
+
+
+### 类型系统
+
+静态类型语言，分为 值类型 和 引用类型。
+
+#### 值类型
+
+![](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222129796.png)
+
+
+
+![image-20220222212951044](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222129090.png)
+
+定长浮点型
+
+支持很差，忽略这个类型吧
+
+![image-20220222214055153](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222140219.png)
+
+
+
+定长字节数组
+
+![image-20220222214157137](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202202222141199.png)
+
+```
+bytes1 bt1 = 0x01;
+bytes2 bt2 = "ab";
+```
 
