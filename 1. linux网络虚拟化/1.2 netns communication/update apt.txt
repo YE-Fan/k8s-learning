@@ -1,3 +1,5 @@
-https://developer.aliyun.com/mirror/ubuntu
+https://developer.aliyun.com/mirror/ubuntu 参考此地址
+用下面的镜像
+https://mirrors.aliyun.com/ubuntu/
 
 sudo apt update
