@@ -19,6 +19,30 @@ This chart uses a **privileged** initContainer to change those settings in the K
 
 
 
+## 非Root
+
+es
+
+非Root带来了一些问题
+
+> https://artifacthub.io/packages/helm/bitnami/elasticsearch#adjust-permissions-of-persistent-volume-mountpoint
+>
+> Adjust permissions of persistent volume mountpoint
+>
+> As the image run as non-root by default, it is necessary to adjust the ownership of the persistent volume so that the container can write data into it.
+>
+> By default, the chart is configured to use Kubernetes Security Context to automatically change the ownership of the volume. However, this feature does not work in all Kubernetes distributions. As an alternative, this chart supports using an initContainer to change the ownership of the volume before mounting it in the final destination.
+>
+> You can enable this initContainer by setting `volumePermissions.enabled` to `true`.
+
+
+
+
+
+
+
+
+
 ## 拓扑图
 
 
