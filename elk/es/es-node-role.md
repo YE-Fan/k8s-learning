@@ -32,7 +32,14 @@
 
 ## Master  节点
 
-注意，master是只有1个，这里3台是表示这3台有资格成为master
+注意，master是只有1个，这里3台是表示这3台有资格成为master。
+
+
+
+- **主节点（active master）**：一般指的是集群中活跃的主节点，每个集群中只能有一个。
+- **候选节点（master eligible）**：具备`master`角色的节点默认都有“被选举权”，即是一个候选节点。候选节点可以参与Master选举过程
+
+
 
 ![image-20221106203021956](https://raw.githubusercontent.com/YE-Fan/k8s-learning/main/imgs/202211062030049.png)
 
