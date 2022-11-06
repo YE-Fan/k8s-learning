@@ -298,5 +298,118 @@ key 是 group.id+topic+ 分区号，value 就是当前 offset 的值。
 | fetch.min.bytes               | 默认 1 个字节。消费者获取服务器端一批消息最小的字节 数。     | min_bytes                 |                                                              |
 | fetch.max.wait.ms             | 默认 500ms。如果没有从服务器端获取到一批数据的最小字 节数。该时间到，仍然会返回数据。 | max_wait_time             | 必须是max_wait_time` * num brokers + `heartbeat_interval` is less than `session_timeout |
 | fetch.max.bytes               | 默认 Default: 52428800（50 m）。消费者获取服务器端一批 消息最大的字节数。如果服务器端一批次的数据大于该值 （50m）仍然可以拉取回来这批数据，因此，这不是一个绝 对最大值。一批次的大小受 message.max.bytes （broker  config）or max.message.bytes （topic config）影响。 |                           |                                                              |
-| max.poll.records              | 一次 poll 拉取数据返回消息的最大条数，默认是 500 条。调整它也要配合最大bytes之类的参数一起调整 |                           |                                                              |
+| max.poll.records              | 一次 poll 拉取数据返回消息的最大条数，默认是 500 条。调整它也要配合最大bytes之类的参数一起调整。对poll()的单个调用中返回的最大记录数。注意，max.poll.records不会影响底层的抓取行为。使用者将缓存来自每个获取请求的记录，并从每次轮询中增量地返回它们。也就是确实这个参数影响的是从消费者自己的缓存队列里面抓取。 |                           |                                                              |
+
+
+
+
+
+## fluentd kafka
+
+
+
+
+
+```
+<source>
+  @type kafka_group
+
+  brokers <broker1_host>:<broker1_port>,<broker2_host>:<broker2_port>,..
+  consumer_group <consumer group name, must set>
+  
+  topics  /elk.*/
+  format  json
+
+  # 默认tag就是 topic 名
+  add_prefix <tag prefix (Optional)>
+  add_suffix <tag suffix (Optional)>
+  
+  # 用默认的nil, 这是等多久再拉数据到buffer给后续的filter和output，默认等到buffer能用了
+  retry_emit_limit <Wait retry_emit_limit x 1s when BuffereQueueLimitError happens. The default is nil and it means waiting until BufferQueueLimitError is resolved>
+  
+
+  time_source record
+  record_time_key  @timestamp
+  time_format # 用record里的时间格式 <string (Optional when use_record_time is used)>
+
+  # ruby-kafka consumer options
+  # 批处理相关
+  # 类似于 fetch.max.bytes 
+  max_bytes               (integer) :default => 1048576  1M  底层库的 max_bytes_per_partition
+  # 类似于fetch.max.wait.ms ，不过它是s为单位， 默认最多等1s就去拉数据
+  max_wait_time           (integer) :default => nil (Use default of ruby-kafka)
+  # 默认 1 字节
+  min_bytes               (integer) :default => nil (Use default of ruby-kafka) 
+  # 消费者缓冲队列的大小，默认100条数据
+  fetcher_max_queue_size  (integer) :default => nil (Use default of ruby-kafka)
+  
+  # 默认10s提交一次offset
+  offset_commit_interval  (integer) :default => nil (Use default of ruby-kafka)
+  # 最多处理n条消息后提交offset，默认不开启
+  offset_commit_threshold (integer) :default => nil (Use default of ruby-kafka)
+  # 没有消费者之后，offset保存多久，默认保存一天的offset
+  offset_retention_time
+  
+  #  interval of refreshing the topic list， 默认为0 不刷新
+  refresh_topic_interval  10
+  #  true是earliest false是latest
+  start_from_beginning    (bool)    :default => true
+  # 分区策略，默认是 RoundRobin
+</source>
+```
+
+
+
+最终就是
+
+```
+@type kafka_group
+
+brokers <broker1_host>:<broker1_port>,<broker2_host>:<broker2_port>,..
+consumer_group <consumer group name, must set>
+  
+topics  /elk.*/
+format  json
+
+# 默认tag就是 topic 名
+add_prefix <tag prefix (Optional)>
+add_suffix <tag suffix (Optional)>
+
+time_source record
+record_time_key  @timestamp
+time_format # 用record里的时间格式 <string (Optional when use_record_time is used)>
+
+max_bytes 1048576
+max_wait_time 1
+min_bytes 1
+fetcher_max_queue_size  100 
+```
+
+
+
+
+
+设置为 
+
+- 批处理要调优
+
+
+
+- offset为自动和 earliest
+
+暂时不改  
+
+```
+start_from_beginning true
+```
+
+
+
+- 分区策略为 RoundRobin
+
+不改，好像也没法改
+
+- 掉线相关
+
+暂时不改，代码里看只有 session_timeout 能改。一般也不用改，超时说明消费者卡太久了，需要调优了，而不是改这个参数
 
